@@ -11,8 +11,8 @@
  *  and limitations under the License.                                                                                *
  *********************************************************************************************************************/
 
-const ImageRequest = require('./image-request.js');
-const ImageHandler = require('./image-handler.js');
+const ImageRequest = require("./image-request.js");
+const ImageHandler = require("./image-handler.js");
 
 exports.handler = async (event) => {
     console.log(event);
@@ -23,15 +23,18 @@ exports.handler = async (event) => {
         console.log(request);
         const processedRequest = await imageHandler.process(request);
 
-        const headers = getResponseHeaders();
-        headers["Content-Type"] = request.ContentType;
-        headers["Expires"] = request.Expires;
-        headers["Last-Modified"] = request.LastModified;
-        headers["Cache-Control"] = request.CacheControl;
+        const headers = {
+            ...getResponseHeaders(),
+            ...getCorsHeaders(event),
+            "Content-Type": request.ContentType,
+            "Expires": request.Expires,
+            "Last-Modified": request.LastModified,
+            "Cache-Control": request.CacheControl
+        };
 
         return {
             "statusCode": 200,
-            "headers" : headers,
+            "headers": headers,
             "body": processedRequest,
             "isBase64Encoded": true
         };
@@ -40,12 +43,12 @@ exports.handler = async (event) => {
 
         return {
             "statusCode": err.status,
-            "headers" : getResponseHeaders(true),
+            "headers": getResponseHeaders(true),
             "body": JSON.stringify(err),
             "isBase64Encoded": false
         };
     }
-}
+};
 
 /**
  * Generates the appropriate set of response headers based on a success
@@ -53,17 +56,46 @@ exports.handler = async (event) => {
  * @param {boolean} isErr - has an error been thrown?
  */
 const getResponseHeaders = (isErr) => {
-    const corsEnabled = (process.env.CORS_ENABLED === "Yes");
     const headers = {
         "Access-Control-Allow-Methods": "GET",
         "Access-Control-Allow-Headers": "Content-Type, Authorization",
         "Access-Control-Allow-Credentials": true
-    }
-    if (corsEnabled) {
-        headers["Access-Control-Allow-Origin"] = process.env.CORS_ORIGIN;
-    }
+    };
     if (isErr) {
-        headers["Content-Type"] = "application/json"
+        headers["Content-Type"] = "application/json";
     }
     return headers;
-}
+};
+
+/**
+ * Generates appropriate CORS headers if enabled
+ *
+ * @param {object} event - event object
+ */
+const getCorsHeaders = (event) => {
+    const headers = {};
+    const corsEnabled = process.env.CORS_ENABLED === "Yes";
+    const requestOrigin = event.headers.origin;
+
+    if (corsEnabled && requestOrigin) {
+        const corsOrigin = process.env.CORS_ORIGIN;
+        let allowOrigin = false;
+
+        try {
+            // Try first as regex
+            const regexMatch = requestOrigin.match(corsOrigin);
+            allowOrigin = regexMatch && regexMatch[0] === requestOrigin;
+        } catch (err) {
+            console.log(err);
+            // Fallback to string comparison
+            allowOrigin = corsOrigin
+                .split(/,/)
+                .some((it) => it === requestOrigin);
+        }
+
+        if (allowOrigin) {
+            headers["Access-Control-Allow-Origin"] = requestOrigin;
+        }
+    }
+    return headers;
+};

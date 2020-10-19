@@ -23,7 +23,7 @@ export class ConstructsStack extends cdk.Stack {
     });
     const corsOriginParameter = new CfnParameter(this, 'CorsOrigin', {
       type: 'String',
-      description: `If you selected 'Yes' above, please specify an origin value here. A wildcard (*) value will support any origin. We recommend specifying an origin (i.e. https://example.domain) to restrict cross-site access to your API.`,
+      description: `If you selected 'Yes' above, please specify an origin value here. Supports multiple origins given either as comma-separated string or RegExp.`,
       default: '*'
     });
     const sourceBucketsParameter = new CfnParameter(this, 'SourceBuckets', {
