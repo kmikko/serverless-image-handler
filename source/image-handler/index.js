@@ -95,6 +95,7 @@ const getCorsHeaders = (event) => {
 
         if (allowOrigin) {
             headers["Access-Control-Allow-Origin"] = requestOrigin;
+            headers["Vary"] = "Origin";
         }
     }
     return headers;
